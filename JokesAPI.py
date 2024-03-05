@@ -7,10 +7,12 @@ Swagger(app)  # Initialize Flasgger for Swagger documentation
 
 DATABASE_NAME = 'jokes.db'
 
+
 def get_connection_db():
     """Creates a connection to the SQLite database."""
     conn = sqlite3.connect(DATABASE_NAME)
     return conn
+
 
 def create_table():
     """Creates the jokes table if it doesn't exist."""
@@ -26,6 +28,7 @@ def create_table():
     conn.commit()
     conn.close()
 
+
 def create_joke(joke, category):
     """Adds a new joke to the database."""
     conn = get_connection_db()
@@ -33,6 +36,7 @@ def create_joke(joke, category):
     cursor.execute("INSERT INTO jokes (joke, category) VALUES (?, ?)", (joke, category))
     conn.commit()
     conn.close()
+
 
 def get_joke(category):
     """Retrieves a random joke from the specified category."""
@@ -42,6 +46,7 @@ def get_joke(category):
     result = cursor.fetchone()
     conn.close()
     return result[0] if result else None
+
 
 @app.route('/jokes', methods=['POST'])
 def add_joke():
@@ -58,7 +63,7 @@ def add_joke():
         type: string
         required: true
     responses:
-      201:
+      200:
         description: Joke added successfully
       400:
         description: Missing or invalid parameters
@@ -70,7 +75,7 @@ def add_joke():
         return jsonify({'error': 'Missing joke or category'}), 400
 
     create_joke(joke, category)
-    return jsonify({'message': 'Joke added successfully'}), 201
+    return jsonify({'message': 'Joke added successfully'}), 200
 
 
 @app.route('/jokes/<category>')
@@ -104,4 +109,4 @@ def get_random_joke(category):
 
 if __name__ == '__main__':
     create_table()  # Ensure the table exists
-    app.run(debug=True,port=8088)
+    app.run(debug=True, port=8088)
