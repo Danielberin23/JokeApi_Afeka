@@ -1,38 +1,107 @@
-from flask import Flask,request,redirect,jsonify
-from flasgger import Swagger
 import sqlite3
+from flask import Flask, request, jsonify
+from flasgger import Swagger
 
 app = Flask(__name__)
-swagger = Swagger(app)
+Swagger(app)  # Initialize Flasgger for Swagger documentation
 
+DATABASE_NAME = 'jokes.db'
 
-def get_db_connection():
-    connection = sqlite3.connect('Jokes.db')
-    connection.row_factory = sqlite3.Row
-    return connection
-
+def get_connection_db():
+    """Creates a connection to the SQLite database."""
+    conn = sqlite3.connect(DATABASE_NAME)
+    return conn
 
 def create_table():
-    connection = get_db_connection()
-    connection.execute('''CREATE TABLE IF NOT EXISTS ChuckNoris(
-                        id INTEGER PRIMARY KEY AUTOINCREMENT,
-                        joke TEXT NOT NULL)''')
-    connection.commit()
-    connection.execute('''CREATE TABLE IF NOT EXISTS YourMomma(
-                            id INTEGER PRIMARY KEY AUTOINCREMENT,
-                            joke TEXT NOT NULL)''')
-    connection.commit()
-    connection.close()
+    """Creates the jokes table if it doesn't exist."""
+    conn = get_connection_db()
+    cursor = conn.cursor()
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS jokes (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            joke TEXT NOT NULL,
+            category TEXT NOT NULL
+        )
+    """)
+    conn.commit()
+    conn.close()
+
+def create_joke(joke, category):
+    """Adds a new joke to the database."""
+    conn = get_connection_db()
+    cursor = conn.cursor()
+    cursor.execute("INSERT INTO jokes (joke, category) VALUES (?, ?)", (joke, category))
+    conn.commit()
+    conn.close()
+
+def get_joke(category):
+    """Retrieves a random joke from the specified category."""
+    conn = get_connection_db()
+    cursor = conn.cursor()
+    cursor.execute("SELECT joke FROM jokes WHERE category = ? ORDER BY RANDOM() LIMIT 1", (category,))
+    result = cursor.fetchone()
+    conn.close()
+    return result[0] if result else None
+
+@app.route('/jokes', methods=['POST'])
+def add_joke():
+    """
+    Adds a new joke to the database.
+    ---
+    parameters:
+      - name: joke
+        in: formData
+        type: string
+        required: true
+      - name: category
+        in: formData
+        type: string
+        required: true
+    responses:
+      201:
+        description: Joke added successfully
+      400:
+        description: Missing or invalid parameters
+    """
+    joke = request.form.get('joke')
+    category = request.form.get('category')
+
+    if not joke or not category:
+        return jsonify({'error': 'Missing joke or category'}), 400
+
+    create_joke(joke, category)
+    return jsonify({'message': 'Joke added successfully'}), 201
 
 
-@app.route('/joke',methods=['POST'])
-def create_joke(category,joke):
-    joke = request.json['joke']
-    db_connection = get_db_connection()
-
-    return jsonify({'category':})
+@app.route('/jokes/<category>')
+def get_random_joke(category):
+    """
+    Retrieves a random joke from the specified category.
+    ---
+    parameters:
+      - name: category
+        in: path
+        type: string
+        required: true
+        description: The category of the joke (e.g., 'programming', 'dadjoke')
+    responses:
+      200:
+        description: A random joke from the category
+        schema:
+          type: object
+          properties:
+            joke:
+              type: string
+      404:
+        description: No jokes found in the category
+    """
+    joke = get_joke(category)
+    if joke:
+        return jsonify({'joke': joke})
+    else:
+        return jsonify({'error': 'No jokes found in that category'}), 404
 
 
 if __name__ == '__main__':
-    app.run(debug=True, port=8088)
-
+    create_table()  # Ensure the table exists
+    app.run(debug=True,port=8088)
