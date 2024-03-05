@@ -55,22 +55,25 @@ def add_joke():
     ---
     parameters:
       - name: joke
-        in: formData
+        in: body
         type: string
         required: true
       - name: category
-        in: formData
+        in: body
         type: string
         required: true
+        example: {"joke":"enter joke here",
+            "category": "Chuck Norris" }
     responses:
       200:
         description: Joke added successfully
       400:
         description: Missing or invalid parameters
     """
-    joke = request.form.get('joke')
-    category = request.form.get('category')
-
+    data = request.get_json()
+    print(data)
+    joke = data['joke']
+    category = data['category']
     if not joke or not category:
         return jsonify({'error': 'Missing joke or category'}), 400
 
@@ -78,7 +81,7 @@ def add_joke():
     return jsonify({'message': 'Joke added successfully'}), 200
 
 
-@app.route('/jokes/<category>')
+@app.route('/jokes/<category>', methods=['GET'])
 def get_random_joke(category):
     """
     Retrieves a random joke from the specified category.
@@ -88,7 +91,7 @@ def get_random_joke(category):
         in: path
         type: string
         required: true
-        description: The category of the joke (e.g., 'programming', 'dadjoke')
+        description: The category of the joke (Chuck Norris, Your Momma)
     responses:
       200:
         description: A random joke from the category
