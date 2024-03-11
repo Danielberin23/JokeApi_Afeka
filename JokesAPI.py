@@ -92,6 +92,7 @@ def get_random_joke(category):
         type: string
         required: true
         description: The category of the joke (Chuck Norris, Your Momma)
+        example: { "category": "Chuck Norris"}
     responses:
       200:
         description: A random joke from the category
